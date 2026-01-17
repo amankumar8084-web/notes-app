@@ -177,12 +177,6 @@ const Dashboard = () => {
               Showing <span className="font-medium">{notes.length}</span> notes
             </div>
             <div className="mt-2 sm:mt-0">
-              <button
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="text-blue-700 hover:text-blue-800"
-              >
-                Back to top ↑
-              </button>
             </div>
           </div>
         </div>

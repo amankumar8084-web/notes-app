@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { FaStickyNote, FaSignOutAlt, FaPlus, FaBars, FaTimes } from 'react-icons/fa';
+import { FaStickyNote, FaSignOutAlt, FaPlus, FaBars, FaTimes, FaUserCircle } from 'react-icons/fa';
 
 const Layout = () => {
   const { user, logout } = useAuth();
@@ -30,7 +30,7 @@ const Layout = () => {
               
               <Link to="/" className="flex items-center">
                 <FaStickyNote className="h-8 w-8 text-blue-700 mr-2" />
-                <span className="text-xl font-semibold text-gray-900">
+                <span className="text-xl font-semibold text-gray-900 hidden sm:block">
                   NotesApp
                 </span>
               </Link>
@@ -46,8 +46,17 @@ const Layout = () => {
                 New Note
               </Link>
               
+              {/* User profile section */}
               <div className="flex items-center text-gray-700 border-l border-gray-300 pl-4">
-                <span className="text-sm">{user?.email || 'User'}</span>
+                <FaUserCircle className="h-5 w-5 text-blue-600 mr-2" />
+                <div className="text-sm">
+                  <div className="font-medium text-gray-900">
+                    {user?.username || user?.email?.split('@')[0] || 'User'}
+                  </div>
+                  <div className="text-xs text-gray-500 truncate max-w-[150px]">
+                    {user?.email}
+                  </div>
+                </div>
               </div>
               
               <button
@@ -60,13 +69,20 @@ const Layout = () => {
             </div>
 
             {/* Mobile menu button */}
-            <div className="lg:hidden flex items-center">
+            <div className="lg:hidden flex items-center space-x-2">
               <Link
                 to="/notes/new"
-                className="inline-flex items-center p-2 rounded-md text-blue-700 hover:text-blue-800 mr-2"
+                className="inline-flex items-center p-2 rounded-md text-blue-700 hover:text-blue-800"
               >
                 <FaPlus size={20} />
               </Link>
+              
+              <div className="flex items-center">
+                <FaUserCircle className="h-5 w-5 text-blue-600 mr-1" />
+                <span className="text-sm font-medium">
+                  {user?.username || user?.email?.split('@')[0] || 'User'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -81,9 +97,21 @@ const Layout = () => {
                 >
                   New Note
                 </Link>
-                <div className="px-3 py-2 text-sm text-gray-500">
-                  Logged in as: {user?.email || 'User'}
+                
+                <div className="px-3 py-2">
+                  <div className="flex items-center">
+                    <FaUserCircle className="h-5 w-5 text-blue-600 mr-3" />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {user?.username || user?.email?.split('@')[0] || 'User'}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate">
+                        {user?.email}
+                      </div>
+                    </div>
+                  </div>
                 </div>
+                
                 <button
                   onClick={() => {
                     handleLogout();

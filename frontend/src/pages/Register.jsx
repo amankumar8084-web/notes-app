@@ -1,205 +1,257 @@
 import React, { useState } from 'react';
-import emailjs from '@emailjs/browser';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { FaUserPlus, FaCheckCircle, FaEnvelope } from 'react-icons/fa';
-
-// 🔹 Initialize EmailJS ONCE (outside component is also fine)
-emailjs.init('Mjrt59vo5ZEcSa_k_'); // your public key
+import { FaUserPlus, FaUser, FaEnvelope, FaLock } from 'react-icons/fa';
 
 const Register = () => {
   const [formData, setFormData] = useState({
+    username: '',
     email: '',
     password: '',
     confirmPassword: ''
   });
-
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
-
+  
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  // 🔹 Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: value
     }));
   };
 
-  // 🔹 Handle form submit
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const validateForm = () => {
     setError('');
-    setEmailSent(false);
 
-    // 🔸 Validations
-    if (formData.password !== formData.confirmPassword) {
-      return setError('Passwords do not match');
+    // Validate username
+    if (formData.username.trim().length < 3) {
+      setError('Username must be at least 3 characters');
+      return false;
     }
 
-    if (formData.password.length < 6) {
-      return setError('Password must be at least 6 characters');
-    }
-
+    // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      return setError('Please enter a valid email address');
+      setError('Please enter a valid email address');
+      return false;
+    }
+
+    // Validate password
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return false;
+    }
+
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
     }
 
     setLoading(true);
 
     try {
-      // 🔹 Send welcome email
-      try {
-        await emailjs.send(
-          'service_6b4x16e',      // Service ID
-          'template_ra6l6ec',     // Template ID
-          {
-            to_email: formData.email,
-            to_name: formData.email.split('@')[0],
-            from_name: 'Notes App',
-            message: 'Welcome to Notes App! Start organizing your notes.',
-            login_url: 'http://localhost:3000/login'
-          }
-        );
-      } catch (emailError) {
-        console.error('Email failed:', emailError);
-        // Registration should still continue
-      }
-
-      // 🔹 Register user
-      const result = await register(formData.email, formData.password);
-
-      if (result?.success) {
-        setEmailSent(true);
-
-        setTimeout(() => {
-          navigate('/login', {
-            state: { message: 'Registration successful! Please login.' }
+      const result = await register(
+        formData.email, 
+        formData.password, 
+        formData.username
+      );
+      
+      if (result.success) {
+        // Auto login after successful registration
+        const loginResult = await login(formData.email, formData.password);
+        
+        if (loginResult.success) {
+          navigate('/', { 
+            state: { 
+              message: 'Registration successful! Welcome!' 
+            } 
           });
-        }, 5000);
+        } else {
+          navigate('/login', { 
+            state: { 
+              message: 'Registration successful! Please login.' 
+            } 
+          });
+        }
       } else {
-        setError(result?.error || 'Registration failed');
+        setError(result.error);
       }
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      setError('An unexpected error occurred');
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ SUCCESS SCREEN
-  if (emailSent) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow text-center">
-          <div className="flex justify-center mb-4">
-            <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
-              <FaEnvelope className="text-green-600 h-8 w-8" />
-            </div>
-          </div>
-
-          <h2 className="text-2xl font-bold mb-2">Check Your Email</h2>
-          <p className="text-gray-600 mb-2">We sent a welcome email to</p>
-          <p className="font-semibold text-blue-700 mb-4">{formData.email}</p>
-
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-4 text-left">
-            <div className="flex">
-              <FaCheckCircle className="text-blue-600 mr-3 mt-1" />
-              <div>
-                <p className="font-medium text-blue-900">What’s next?</p>
-                <p className="text-sm text-blue-800">
-                  Login and start creating notes 🚀
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-sm text-gray-500 mb-4">
-            Redirecting to login in 5 seconds...
-          </p>
-
-          <button
-            onClick={() => navigate('/login')}
-            className="w-full bg-blue-700 text-white py-3 rounded hover:bg-blue-800"
-          >
-            Go to Login
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ✅ REGISTRATION FORM
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-6">
-          <div className="flex justify-center mb-3">
-            <div className="h-12 w-12 bg-blue-700 rounded-full flex items-center justify-center">
-              <FaUserPlus className="text-white h-6 w-6" />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-4 px-3 sm:py-8 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md mx-auto">
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="flex justify-center mb-4">
+            <div className="h-12 w-12 rounded-full bg-blue-700 flex items-center justify-center">
+              <FaUserPlus className="h-6 w-6 text-white" />
             </div>
           </div>
-
-          <h1 className="text-2xl font-bold">Create your account</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            Create your account
+          </h1>
+          <p className="mt-2 text-sm sm:text-base text-gray-600">
             Already have an account?{' '}
-            <Link to="/login" className="text-blue-700 font-medium">
+            <Link to="/login" className="font-medium text-blue-700 hover:text-blue-800">
               Sign in
             </Link>
           </p>
         </div>
-
-        <div className="bg-white p-6 rounded-lg shadow">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded mb-4">
-              {error}
+        
+        <div className="bg-white rounded-lg shadow border border-gray-200 py-6 px-4 sm:px-8">
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 sm:px-4 sm:py-3 rounded text-sm sm:text-base">
+                {error}
+              </div>
+            )}
+            
+            {/* Username Field */}
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                Username
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaUser className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  required
+                  value={formData.username}
+                  onChange={handleChange}
+                  className="pl-10 w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-700 focus:border-blue-700 outline-none transition text-sm sm:text-base"
+                  placeholder="johndoe"
+                  minLength="3"
+                  maxLength="30"
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                This will be displayed in your profile (3-30 characters)
+              </p>
             </div>
-          )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full p-3 border rounded"
-            />
+            {/* Email Field */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                Email address
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaEnvelope className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="pl-10 w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-700 focus:border-blue-700 outline-none transition text-sm sm:text-base"
+                  placeholder="you@example.com"
+                />
+              </div>
+            </div>
 
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="w-full p-3 border rounded"
-            />
+            {/* Password Field */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaLock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="pl-10 w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-700 focus:border-blue-700 outline-none transition text-sm sm:text-base"
+                  placeholder="••••••••"
+                  minLength="6"
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Must be at least 6 characters
+              </p>
+            </div>
 
-            <input
-              type="password"
-              name="confirmPassword"
-              placeholder="Confirm Password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-              className="w-full p-3 border rounded"
-            />
+            {/* Confirm Password Field */}
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaLock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="pl-10 w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-700 focus:border-blue-700 outline-none transition text-sm sm:text-base"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-700 text-white py-3 rounded hover:bg-blue-800 disabled:opacity-50"
-            >
-              {loading ? 'Creating Account...' : 'Create Account & Send Email'}
-            </button>
+            {/* Submit Button */}
+            <div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex justify-center items-center py-2.5 sm:py-3 px-4 border border-transparent text-sm sm:text-base font-medium rounded-lg text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-700 disabled:opacity-50 transition min-h-[44px]"
+              >
+                {loading ? (
+                  <>
+                    <div className="h-4 w-4 sm:h-5 sm:w-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Creating Account...
+                  </>
+                ) : (
+                  <>
+                    <FaUserPlus className="mr-2" />
+                    Create Account
+                  </>
+                )}
+              </button>
+            </div>
           </form>
+        </div>
+
+        <div className="mt-6 text-center">
+          <p className="text-xs sm:text-sm text-gray-500">
+            By creating an account, you agree to our Terms of Service and Privacy Policy
+          </p>
         </div>
       </div>
     </div>

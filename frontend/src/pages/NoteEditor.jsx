@@ -139,10 +139,10 @@ const NoteEditor = () => {
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-700 focus:border-blue-700 outline-none transition text-lg"
                 placeholder="Enter note title"
-                maxLength={100}
+                maxLength={25}
               />
               <div className="mt-1 text-sm text-gray-500 text-right">
-                {formData.title.length}/100 characters
+                {formData.title.length}/25 characters
               </div>
             </div>
 
@@ -208,7 +208,7 @@ const NoteEditor = () => {
       </div>
 
       {/* Character Count Stats */}
-      <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded-lg border border-gray-200">
           <div className="text-sm text-gray-500">Title Length</div>
           <div className="text-2xl font-bold text-blue-700">{formData.title.length}</div>
@@ -226,7 +226,7 @@ const NoteEditor = () => {
           </div>
           <div className="text-xs text-gray-500">total words</div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

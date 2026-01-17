@@ -8,7 +8,7 @@ const { sendEmail } = require("../services/emailService");
 
 // ================= SIGNUP =================
 router.post("/signup", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, username } = req.body;
 
   try {
     const existingUser = await User.findOne({ email });
@@ -21,6 +21,7 @@ router.post("/signup", async (req, res) => {
     const newUser = new User({
       email,
       password: hashedPassword,
+      username: username || email.split('@')[0]
     });
 
     await newUser.save();
@@ -66,7 +67,12 @@ router.post("/login", async (req, res) => {
 
 res.status(200).json({
   message: "Login successful",
-  token: token
+  token: token,
+  user: {
+    id: user._id,
+    email: user.email,
+    username: user.username
+  }
 });
   }catch (error) {
     res.status(500).json({ message: "Server error"});
@@ -75,11 +81,25 @@ res.status(200).json({
 
 
 //============================PROFILE =======================
-router.get("/profile", authMiddleware, (req, res) => {
-  res.json({
-    message: "Welcome to protected route",
-    userId: req.user.userId
-  });
+router.get("/profile", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    res.json({
+      message: "Welcome to protected route",
+      user: {
+        id: user._id,
+        email: user.email,
+        username: user.username,
+        createdAt: user.createdAt
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 

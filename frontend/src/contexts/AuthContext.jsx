@@ -18,8 +18,13 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       try {
         const response = await authAPI.getProfile();
-        setUser({ userId: response.data.userId });
+        setUser({
+          id: response.data.user.id,
+          email: response.data.user.email,
+          username: response.data.user.username
+        });
       } catch (error) {
+        console.error('Auth check failed:', error);
         localStorage.removeItem('token');
       }
     }
@@ -30,7 +35,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.login({ email, password });
       localStorage.setItem('token', response.data.token);
-      setUser({ userId: response.data.userId });
+      setUser({
+        id: response.data.user.id,
+        email: response.data.user.email,
+        username: response.data.user.username
+      });
       return { success: true };
     } catch (error) {
       return { 
@@ -40,21 +49,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (email, password) => {
-  try {
-    const response = await authAPI.register({ email, password });
-    return { 
-      success: true, 
-      message: response.data.message,
-      emailSent: response.data.emailSent 
-    };
-  } catch (error) {
-    return { 
-      success: false, 
-      error: error.response?.data?.message || 'Registration failed' 
-    };
-  }
-};
+  const register = async (email, password, username) => {
+    try {
+      const response = await authAPI.register({ email, password, username });
+      return { 
+        success: true,
+        user: response.data.user 
+      };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Registration failed' 
+      };
+    }
+  };
 
   const logout = () => {
     localStorage.removeItem('token');
