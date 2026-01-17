@@ -9,10 +9,7 @@ const noteRoutes = require("./routes/noteRoutes");
 const app = express();
 
 // Enable CORS for frontend
-app.use(cors({
-  origin: ['https://notes-app-backend-mga4.onrender.com/', 'http://localhost:3000'],
-  credentials: true
-}));
+app.use(cors());
 
 // Parse JSON bodies
 app.use(express.json());
