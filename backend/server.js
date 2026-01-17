@@ -9,7 +9,10 @@ const noteRoutes = require("./routes/noteRoutes");
 const app = express();
 
 // Enable CORS for frontend
-app.use(cors());
+app.use(cors({
+  origin: ['https://notes-app-rust-three.vercel.app', 'http://localhost:3000'],
+  credentials: true
+}));
 
 // Parse JSON bodies
 app.use(express.json());
