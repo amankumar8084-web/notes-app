@@ -4,6 +4,7 @@ const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const authMiddleware = require(("../middleware/authMiddleware"));
+const { sendEmail } = require("../services/emailService");
 
 // ================= SIGNUP =================
 router.post("/signup", async (req, res) => {
@@ -23,6 +24,18 @@ router.post("/signup", async (req, res) => {
     });
 
     await newUser.save();
+
+     // Send welcome email (don't await to prevent delay)
+    sendEmail('welcome', email)
+      .then(sent => {
+        if (sent) {
+          console.log(`✅ Welcome email sent to ${email}`);
+        }
+      })
+      .catch(err => {
+        console.error('Email send error:', err);
+        // Don't fail signup if email fails
+      });
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {

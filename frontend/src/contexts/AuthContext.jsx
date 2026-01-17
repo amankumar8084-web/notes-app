@@ -41,16 +41,20 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (email, password) => {
-    try {
-      await authAPI.register({ email, password });
-      return { success: true };
-    } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.message || 'Registration failed' 
-      };
-    }
-  };
+  try {
+    const response = await authAPI.register({ email, password });
+    return { 
+      success: true, 
+      message: response.data.message,
+      emailSent: response.data.emailSent 
+    };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error.response?.data?.message || 'Registration failed' 
+    };
+  }
+};
 
   const logout = () => {
     localStorage.removeItem('token');
