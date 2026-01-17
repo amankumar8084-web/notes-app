@@ -10,7 +10,7 @@ const app = express();
 
 // Enable CORS for frontend
 app.use(cors({
-  origin: ['https://notes-app-rust-three.vercel.app', 'http://localhost:3000'],
+  origin: ['https://notes-app-backend-mga4.onrender.com/', 'http://localhost:3000'],
   credentials: true
 }));
 
