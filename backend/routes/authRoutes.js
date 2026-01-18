@@ -4,7 +4,7 @@ const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const authMiddleware = require(("../middleware/authMiddleware"));
-const { sendWelcomeEmail } = require("../services/resendService");
+const { sendEmail } = require("../services/emailService");
 
 // ================= SIGNUP =================
 router.post("/signup", async (req, res) => {
@@ -21,35 +21,28 @@ router.post("/signup", async (req, res) => {
     const newUser = new User({
       email,
       password: hashedPassword,
-      username: username || email.split("@")[0]
+      username: username || email.split('@')[0]
     });
 
     await newUser.save();
 
-    // ✅ Send welcome email (non-blocking)
-    sendWelcomeEmail(email)
-      .then((sent) => {
+     // Send welcome email (don't await to prevent delay)
+    sendEmail('welcome', email)
+      .then(sent => {
         if (sent) {
           console.log(`✅ Welcome email sent to ${email}`);
         }
       })
-      .catch((err) => {
-        console.error("❌ Email send error:", err);
-        // Signup should not fail if email fails
+      .catch(err => {
+        console.error('Email send error:', err);
+        // Don't fail signup if email fails
       });
 
-    res.status(201).json({
-      message: "User registered successfully"
-    });
-
+    res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    console.error("Signup error:", error);
-    res.status(500).json({
-      message: "Server error"
-    });
+    res.status(500).json({ message: "Server error" });
   }
 });
-
 
 // ================= LOGIN =================
 router.post("/login", async (req, res) => {
