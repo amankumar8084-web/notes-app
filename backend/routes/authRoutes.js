@@ -7,6 +7,7 @@ const authMiddleware = require(("../middleware/authMiddleware"));
 const { sendEmail } = require("../services/emailService");
 
 // ================= SIGNUP =================
+// ================= SIGNUP (Updated) =================
 router.post("/signup", async (req, res) => {
   const { email, password, username } = req.body;
 
@@ -26,21 +27,40 @@ router.post("/signup", async (req, res) => {
 
     await newUser.save();
 
-     // Send welcome email (don't await to prevent delay)
-    sendEmail('welcome', email)
-      .then(sent => {
-        if (sent) {
-          console.log(`✅ Welcome email sent to ${email}`);
+    // Send welcome email with better logging
+    console.log(`Attempting to send welcome email to: ${email}`);
+    
+    // Send email (non-blocking)
+    setTimeout(async () => {
+      try {
+        const emailResult = await sendEmail('welcome', email);
+        console.log('Email send result:', emailResult);
+        
+        if (emailResult.devMode && !emailResult.success) {
+          console.warn(`⚠️ Email sent in development mode only. To send real emails, configure EMAIL_USER and EMAIL_PASSWORD in environment variables.`);
+        } else if (emailResult.success) {
+          console.log(`✅ Welcome email processed for ${email}`);
         }
-      })
-      .catch(err => {
-        console.error('Email send error:', err);
+      } catch (emailError) {
+        console.error('Email error (non-blocking):', emailError.message);
         // Don't fail signup if email fails
-      });
+      }
+    }, 1000); // Delay 1 second to not block response
 
-    res.status(201).json({ message: "User registered successfully" });
+    res.status(201).json({ 
+      message: "User registered successfully",
+      user: {
+        id: newUser._id,
+        email: newUser.email,
+        username: newUser.username
+      }
+    });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Signup error:", error);
+    res.status(500).json({ 
+      message: "Server error",
+      error: error.message 
+    });
   }
 });
 
