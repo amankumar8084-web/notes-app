@@ -1,5 +1,6 @@
 import emailjs from '@emailjs/browser';
 
+// Initialize EmailJS once with your User ID
 const EMAILJS_USER_ID = process.env.REACT_APP_EMAILJS_USER_ID || 'Mjrt59vo5ZEcSa_k_';
 emailjs.init(EMAILJS_USER_ID);
 
@@ -9,10 +10,10 @@ export const sendWelcomeEmail = async (userEmail, userName) => {
   console.log('Username:', userName);
   
   try {
-    // Get credentials from environment or hardcode
+    // Get credentials - DON'T redefine userId here
     const serviceId = process.env.REACT_APP_EMAILJS_SERVICE_ID || 'service_6b4x16e';
     const templateId = process.env.REACT_APP_EMAILJS_TEMPLATE_ID || 'template_ra6l6ec';
-    const userId = process.env.REACT_APP_EMAILJS_USER_ID || 'Mjrt59vo5ZEcSa_k_';
+    // Remove this line: const userId = process.env.REACT_APP_EMAILJS_USER_ID || 'Mjrt59vo5ZEcSa_k_';
     
     const templateParams = {
       to_email: userEmail,
