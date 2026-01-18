@@ -1,77 +1,72 @@
 const nodemailer = require('nodemailer');
 
-console.log('📧 Email Service Initializing...');
+console.log('\n📧 ===== EMAIL SERVICE INITIALIZATION =====');
 console.log('EMAIL_USER:', process.env.EMAIL_USER ? '✅ Set' : '❌ NOT SET');
+console.log('EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '✅ Set' : '❌ NOT SET');
 console.log('NODE_ENV:', process.env.NODE_ENV || 'development');
+console.log('============================================\n');
 
-// Create transporter with Render-compatible settings
+// Create transporter - FIXED FOR RENDER
 const createTransporter = () => {
-  // Check if we're using Gmail
+  // Check if we have Gmail credentials
   if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
-    console.log('✅ Attempting to configure Gmail transporter...');
+    console.log('🔧 Configuring Gmail transporter...');
     
-    // IMPORTANT: Use explicit Gmail SMTP settings for Render
+    // IMPORTANT: Use these exact settings for Render
     return nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 587, // Use port 587 (not 465)
-      secure: false, // false for port 587
-      requireTLS: true, // Important for Render
+      port: 465, // Use 465 (SSL) instead of 587
+      secure: true, // true for port 465
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,
       },
       tls: {
-        // Don't reject unauthorized certificates (helps with Render)
-        rejectUnauthorized: false
+        rejectUnauthorized: false // Important for Render
       },
-      // Connection timeout settings for Render
-      connectionTimeout: 10000, // 10 seconds
-      socketTimeout: 10000, // 10 seconds
-      greetingTimeout: 10000, // 10 seconds
-      // Debug logging
-      debug: process.env.NODE_ENV === 'development',
-      logger: process.env.NODE_ENV === 'development'
+      // Timeout settings
+      connectionTimeout: 30000, // 30 seconds
+      socketTimeout: 30000, // 30 seconds
+      // Debug info
+      logger: true,
+      debug: true
     });
-  } else if (process.env.EMAIL_HOST) {
-    // Custom SMTP (like Ethereal)
-    console.log('📧 Using custom SMTP:', process.env.EMAIL_HOST);
-    return nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT || 587,
-      secure: process.env.EMAIL_SECURE === 'true',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    });
-  } else {
-    // Development mode - log to console
-    console.log('⚠️ No email credentials found. Using development mode.');
-    return {
-      sendMail: (mailOptions) => {
-        console.log('\n📧 ===== EMAIL LOG (Development Mode) =====');
-        console.log('To:', mailOptions.to);
-        console.log('Subject:', mailOptions.subject);
-        console.log('Time:', new Date().toISOString());
-        console.log('Note: Add EMAIL_USER and EMAIL_PASSWORD to send real emails');
-        console.log('📧 =========================================\n');
-        
-        return Promise.resolve({
-          messageId: 'dev-' + Date.now(),
-          envelope: { to: [mailOptions.to] }
-        });
-      }
-    };
   }
+  
+  // No credentials - development mode
+  console.log('⚠️ No email credentials found. Using DEVELOPMENT MODE.');
+  console.log('💡 To send real emails, add EMAIL_USER and EMAIL_PASSWORD to environment variables');
+  
+  return {
+    sendMail: (mailOptions) => {
+      console.log('\n📧 ===== DEVELOPMENT EMAIL LOG =====');
+      console.log('To:', mailOptions.to);
+      console.log('Subject:', mailOptions.subject);
+      console.log('Time:', new Date().toISOString());
+      console.log('Note: This email was logged to console only');
+      console.log('📧 ===================================\n');
+      
+      return Promise.resolve({
+        messageId: 'dev-' + Date.now(),
+        envelope: { to: [mailOptions.to] }
+      });
+    }
+  };
 };
 
 const transporter = createTransporter();
 
-// Verify transporter connection (only for real SMTP)
+// Verify connection (only for real SMTP)
 if (transporter.verify) {
   transporter.verify()
-    .then(() => console.log('✅ SMTP Connection verified'))
-    .catch(err => console.log('❌ SMTP Connection failed:', err.message));
+    .then(() => console.log('✅ SMTP Connection verified successfully'))
+    .catch(err => {
+      console.log('❌ SMTP Connection failed:', err.message);
+      console.log('💡 Try these fixes:');
+      console.log('1. Use Gmail App Password (not regular password)');
+      console.log('2. Enable 2-Step Verification on Google');
+      console.log('3. Try Resend.com instead (easier with Render)');
+    });
 }
 
 // Email templates
@@ -101,7 +96,7 @@ const emailTemplates = {
           </div>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.FRONTEND_URL || 'https://your-app.netlify.app'}" 
+            <a href="${process.env.FRONTEND_URL || 'https://lekhan.netlify.app'}" 
                style="background: #1e40af; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 16px;">
               Start Taking Notes
             </a>
@@ -123,7 +118,7 @@ const emailTemplates = {
   }),
 };
 
-// Send email function with better error handling
+// Send email function
 const sendEmail = async (type, email, data = {}) => {
   console.log(`\n📧 Attempting to send ${type} email to: ${email}`);
   
@@ -137,36 +132,17 @@ const sendEmail = async (type, email, data = {}) => {
     
     // Check if we're in development mode
     if (!transporter.sendMail || typeof transporter.sendMail !== 'function') {
-      console.log('📧 Development mode - logging to console');
-      await transporter.sendMail(mailOptions);
+      console.log('📧 Running in DEVELOPMENT MODE');
+      await transporter.sendMail(mailOptions); // Logs to console
       return { 
         success: true, 
         devMode: true,
-        message: 'Email logged (development mode)'
+        message: 'Email logged to console (development mode)'
       };
     }
 
-    // Set timeout for SMTP connection
-    const sendEmailWithTimeout = () => {
-      return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('SMTP connection timeout after 10 seconds'));
-        }, 10000);
-
-        transporter.sendMail(mailOptions)
-          .then(info => {
-            clearTimeout(timeout);
-            resolve(info);
-          })
-          .catch(err => {
-            clearTimeout(timeout);
-            reject(err);
-          });
-      });
-    };
-
-    console.log('📧 Sending via Gmail SMTP...');
-    const info = await sendEmailWithTimeout();
+    console.log('📧 Sending REAL email via Gmail...');
+    const info = await transporter.sendMail(mailOptions);
     
     console.log(`✅ REAL EMAIL SENT SUCCESSFULLY!`);
     console.log(`📧 Message ID: ${info.messageId}`);
@@ -176,35 +152,34 @@ const sendEmail = async (type, email, data = {}) => {
       success: true, 
       devMode: false,
       message: 'Email sent successfully via Gmail',
-      messageId: info.messageId
+      messageId: info.messageId,
+      response: info.response
     };
     
   } catch (error) {
-    console.error(`❌ Email sending failed for ${email}:`, error.message);
+    console.error(`❌ Email sending failed:`, error.message);
     
     // Check error type
     if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
-      console.error('⚠️ SMTP TIMEOUT - Render may be blocking Gmail connections');
-      console.error('💡 Solutions:');
-      console.error('1. Try port 465 with secure: true');
-      console.error('2. Use Resend.com instead (recommended for Render)');
-      console.error('3. Use Ethereal Email for testing');
+      console.error('⚠️ SMTP TIMEOUT - Common issue with Render free tier');
+      console.error('💡 Try: 1. Use port 465 with secure: true');
+      console.error('💡 Try: 2. Use Resend.com (recommended)');
+      console.error('💡 Try: 3. Use Ethereal Email for testing');
     }
     
     if (error.code === 'EAUTH') {
       console.error('⚠️ AUTHENTICATION ERROR');
       console.error('Make sure:');
-      console.error('1. 2-Step Verification is ENABLED on Google');
-      console.error('2. You are using APP PASSWORD (16 characters)');
+      console.error('1. 2-Step Verification is ENABLED');
+      console.error('2. Using APP PASSWORD (16 chars from https://myaccount.google.com/apppasswords)');
       console.error('3. NOT your regular Gmail password');
     }
     
-    // Fallback to development mode
+    // Fallback to console logging
     console.log('🔄 Falling back to console logging...');
-    const mailOptions = emailTemplates[type](email, data);
     console.log('\n📧 ===== FALLBACK EMAIL LOG =====');
-    console.log('To:', mailOptions.to);
-    console.log('Subject:', mailOptions.subject);
+    console.log('To:', email);
+    console.log('Subject: Welcome to Notes App');
     console.log('Time:', new Date().toISOString());
     console.log('📧 =============================\n');
     
@@ -221,12 +196,12 @@ const sendEmail = async (type, email, data = {}) => {
 const testEmailService = async () => {
   console.log('\n🔧 Testing email service...');
   const result = await sendEmail('welcome', 'test@example.com');
-  console.log('Test result:', {
-    success: result.success,
-    devMode: result.devMode,
-    message: result.message,
-    error: result.error || 'none'
-  });
+  
+  console.log('\n📊 TEST RESULT:');
+  console.log('Success:', result.success ? '✅' : '❌');
+  console.log('Real Email:', result.devMode ? '❌ (Development)' : '✅ (Production)');
+  console.log('Message:', result.message);
+  
   return result;
 };
 
