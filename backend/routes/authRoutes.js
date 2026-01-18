@@ -1,65 +1,69 @@
 const express = require("express");
 const router = express.Router();
-const User = require("../models/user"); 
+const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const authMiddleware = require(("../middleware/authMiddleware"));
-const { sendEmail } = require("../services/emailService");
+const authMiddleware = require("../middleware/authMiddleware");
+const { sendEmailViaResend } = require("../services/resendEmailService");
 
 // ================= SIGNUP =================
-// ================= SIGNUP (Updated) =================
 router.post("/signup", async (req, res) => {
   const { email, password, username } = req.body;
 
   try {
+    // 1. Check existing user
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    // 2. Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
+    const newUsername = username || email.split("@")[0];
 
+    // 3. Save user
     const newUser = new User({
       email,
       password: hashedPassword,
-      username: username || email.split('@')[0]
+      username: newUsername
     });
 
     await newUser.save();
 
-    // Send welcome email with better logging
-    console.log(`Attempting to send welcome email to: ${email}`);
-    
-    // Send email (non-blocking)
+    // 4. Send welcome email (non-blocking, Resend)
     setTimeout(async () => {
       try {
-        const emailResult = await sendEmail('welcome', email);
-        console.log('Email send result:', emailResult);
-        
-        if (emailResult.devMode && !emailResult.success) {
-          console.warn(`⚠️ Email sent in development mode only. To send real emails, configure EMAIL_USER and EMAIL_PASSWORD in environment variables.`);
-        } else if (emailResult.success) {
-          console.log(`✅ Welcome email processed for ${email}`);
-        }
-      } catch (emailError) {
-        console.error('Email error (non-blocking):', emailError.message);
-        // Don't fail signup if email fails
-      }
-    }, 1000); // Delay 1 second to not block response
+        const emailResult = await sendEmailViaResend("welcome", email, {
+          username: newUsername
+        });
 
-    res.status(201).json({ 
+        console.log("📧 Email send result:", {
+          success: emailResult.success,
+          mode: emailResult.devMode ? "Dev Mode" : "Production",
+          message: emailResult.message
+        });
+
+      } catch (emailError) {
+        console.error("📧 Email background error:", emailError.message);
+      }
+    }, 100);
+
+    // 5. Response
+    res.status(201).json({
       message: "User registered successfully",
       user: {
         id: newUser._id,
         email: newUser.email,
         username: newUser.username
-      }
+      },
+      note: "Welcome email has been sent to your inbox"
     });
+
   } catch (error) {
     console.error("Signup error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Server error",
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -80,34 +84,34 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-  { userId: user._id },
-  process.env.JWT_SECRET,
-  { expiresIn: "1h" }
-);
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
 
-res.status(200).json({
-  message: "Login successful",
-  token: token,
-  user: {
-    id: user._id,
-    email: user.email,
-    username: user.username
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        username: user.username
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
   }
 });
-  }catch (error) {
-    res.status(500).json({ message: "Server error"});
-  }
-});
 
-
-//============================PROFILE =======================
+// ================= PROFILE =================
 router.get("/profile", authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select('-password');
+    const user = await User.findById(req.user.userId).select("-password");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    
+
     res.json({
       message: "Welcome to protected route",
       user: {
@@ -121,7 +125,5 @@ router.get("/profile", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
-
 
 module.exports = router;
