@@ -4,19 +4,21 @@ const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const authMiddleware = require("../middleware/authMiddleware");
-const { sendEmailViaResend } = require("../services/resendEmailService");
+
+
+// NEW: Using EmailJS (will send to user's email)
+const { sendWelcomeEmail, testEmailJS } = require("../services/emailjsService");
 
 // ================= CHECK EMAIL CONFIG =================
 router.get("/check-email-config", (req, res) => {
   console.log('\n🔍 Checking email configuration...');
   
   const config = {
-    RESEND_API_KEY_EXISTS: !!process.env.RESEND_API_KEY,
-    RESEND_API_KEY_LENGTH: process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.length : 0,
-    RESEND_API_KEY_FORMAT: process.env.RESEND_API_KEY ? 
-      (process.env.RESEND_API_KEY.startsWith('re_') ? '✅ Correct' : '❌ Wrong format') : 'No key',
-    NODE_ENV: process.env.NODE_ENV || 'development',
+    EMAILJS_SERVICE_ID_EXISTS: !!process.env.EMAILJS_SERVICE_ID,
+    EMAILJS_TEMPLATE_ID_EXISTS: !!process.env.EMAILJS_TEMPLATE_ID,
+    EMAILJS_USER_ID_EXISTS: !!process.env.EMAILJS_USER_ID,
     FRONTEND_URL: process.env.FRONTEND_URL || 'Not set',
+    NODE_ENV: process.env.NODE_ENV || 'development',
     JWT_SECRET_EXISTS: !!process.env.JWT_SECRET
   };
   
@@ -25,21 +27,32 @@ router.get("/check-email-config", (req, res) => {
   // Give clear instructions
   let message = "Configuration check completed";
   let help = [];
+  let allSet = true;
   
-  if (!config.RESEND_API_KEY_EXISTS) {
-    message = "RESEND_API_KEY is NOT SET";
-    help.push("1. Go to https://resend.com and sign up");
-    help.push("2. Get API key from 'API Keys' section");
-    help.push("3. Add to Render: RESEND_API_KEY=re_your_key_here");
-  } else if (config.RESEND_API_KEY_FORMAT.includes('Wrong')) {
-    message = "RESEND_API_KEY has wrong format";
-    help.push("API key should start with 're_'");
-    help.push("Get a new key from https://resend.com/api-keys");
-  } else if (config.RESEND_API_KEY_LENGTH < 20) {
-    message = "RESEND_API_KEY seems too short";
-    help.push("A valid key is usually 40+ characters starting with 're_'");
-  } else {
-    message = "✅ Email configuration looks good!";
+  if (!config.EMAILJS_SERVICE_ID_EXISTS) {
+    message = "EMAILJS_SERVICE_ID is NOT SET";
+    help.push("1. Go to https://www.emailjs.com and sign up");
+    help.push("2. Create email service and template");
+    help.push("3. Copy Service ID to Render: EMAILJS_SERVICE_ID=your_id");
+    allSet = false;
+  }
+  
+  if (!config.EMAILJS_TEMPLATE_ID_EXISTS) {
+    message = "EMAILJS_TEMPLATE_ID is NOT SET";
+    help.push("1. Create email template in EmailJS dashboard");
+    help.push("2. Copy Template ID to Render: EMAILJS_TEMPLATE_ID=your_id");
+    allSet = false;
+  }
+  
+  if (!config.EMAILJS_USER_ID_EXISTS) {
+    message = "EMAILJS_USER_ID is NOT SET";
+    help.push("1. Get User ID from EmailJS Integration page");
+    help.push("2. Copy to Render: EMAILJS_USER_ID=your_id");
+    allSet = false;
+  }
+  
+  if (allSet) {
+    message = "✅ EmailJS configuration looks good!";
     help.push("Test with /test-email endpoint");
   }
   
@@ -48,7 +61,7 @@ router.get("/check-email-config", (req, res) => {
     message: message,
     config: config,
     help: help,
-    test_endpoint: "POST /api/auth/test-email with {email: 'your@email.com'}"
+    test_endpoint: "POST /api/auth/test-email with {email: 'test@example.com'}"
   });
 });
 
@@ -66,7 +79,7 @@ router.post("/test-email", async (req, res) => {
     });
   }
   
-  console.log('Testing email to:', email);
+  console.log('Testing EmailJS with email:', email);
   
   try {
     // Validate email format
@@ -78,10 +91,8 @@ router.post("/test-email", async (req, res) => {
       });
     }
     
-    console.log('📧 Calling sendEmailViaResend...');
-    const result = await sendEmailViaResend('welcome', email, { 
-      username: 'Test User' 
-    });
+    console.log('📧 Calling sendWelcomeEmail (EmailJS)...');
+    const result = await sendWelcomeEmail(email, 'Test User');
     
     console.log('📊 Test result:', result.success ? 'SUCCESS' : 'FAILED');
     
@@ -90,8 +101,8 @@ router.post("/test-email", async (req, res) => {
         success: true,
         message: "✅ Email test completed successfully",
         result: {
-          method: result.devMode ? 'Console Log' : 'Resend API',
-          emailId: result.emailId || result.messageId,
+          service: result.service || 'EmailJS',
+          status: result.status,
           to: email,
           mode: result.devMode ? 'Development (logged to console)' : 'Production (real email sent)'
         }
@@ -102,8 +113,8 @@ router.post("/test-email", async (req, res) => {
         message: "❌ Email test failed",
         error: result.error,
         help: [
-          "Check if RESEND_API_KEY is set in environment variables",
-          "Verify the key starts with 're_'",
+          "Check if EmailJS credentials are set in environment variables",
+          "Verify Service ID, Template ID, and User ID are correct",
           "Check Render logs for more details"
         ],
         result: result
@@ -168,31 +179,34 @@ router.post("/signup", async (req, res) => {
     await newUser.save();
     console.log('✅ User saved with ID:', newUser._id);
 
-    // 4. Send welcome email (non-blocking)
-    console.log('📧 Scheduling welcome email...');
+    // 4. Send welcome email using EmailJS (non-blocking)
+    console.log('📧 Scheduling welcome email via EmailJS...');
     
-    // Use immediate async function instead of setTimeout
+    // Use immediate async function
     (async () => {
       try {
-        console.log('📧 Background: Starting email send...');
-        const emailResult = await sendEmailViaResend("welcome", email, {
-          username: newUsername
-        });
+        console.log('📧 Background: Starting EmailJS send...');
+        const emailResult = await sendWelcomeEmail(email, newUsername);
 
-        console.log('📧 Background email result:', {
+        console.log('📧 EmailJS result:', {
           success: emailResult.success,
-          mode: emailResult.devMode ? "Dev Mode" : "Production",
+          service: emailResult.service || 'EmailJS',
           error: emailResult.error || 'None',
-          emailId: emailResult.emailId || 'Not sent'
+          devMode: emailResult.devMode || false
         });
 
-        if (!emailResult.success) {
+        if (emailResult.success) {
+          console.log('✅ Welcome email sent successfully to user!');
+        } else {
           console.warn('⚠️ Email sending failed but signup succeeded');
-          console.warn('💡 User can still use the app, just no welcome email');
+          console.warn('💡 User can still use the app');
+          if (emailResult.error) {
+            console.warn('💡 Error:', emailResult.error);
+          }
         }
         
       } catch (emailError) {
-        console.error('📧 Background email error:', emailError.message);
+        console.error('📧 Email background error:', emailError.message);
         console.error('📧 Full error:', emailError);
         // Don't throw - email failure shouldn't fail signup
       }
@@ -216,7 +230,7 @@ router.post("/signup", async (req, res) => {
       user: {
         id: newUser._id,
         email: newUser.email,
-        username: newUser.username,
+        username: newUsername,
         createdAt: newUser.createdAt
       },
       note: "Welcome email is being sent to your inbox"
