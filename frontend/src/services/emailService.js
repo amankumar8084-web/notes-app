@@ -12,11 +12,12 @@ export const sendWelcomeEmail = async (userEmail, userName) => {
     const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'Mjrt59vo5ZEcSa_k_';
     
     const templateParams = {
-      to_email: userEmail,
-      to_name: userName,
-      app_url: import.meta.env.VITE_FRONTEND_URL || window.location.origin,
-      year: new Date().getFullYear()
-    };
+    email: userEmail,  // This MUST match {{email}} in your template's "To Email" field
+    user_name: userName,
+    user_email: userEmail, // Optional: also send as user_email for use in template body
+    app_url: import.meta.env.VITE_FRONTEND_URL || window.location.origin,
+    year: new Date().getFullYear().toString()
+};
 
     console.log('📧 EmailJS Parameters:', {
       serviceId,
