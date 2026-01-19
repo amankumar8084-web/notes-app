@@ -6,18 +6,19 @@ export const sendWelcomeEmail = async (userEmail, userName) => {
   console.log('Username:', userName);
   
   try {
-    // Use VITE_ prefix for environment variables
+    // USE VITE ENVIRONMENT VARIABLES
     const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_6b4x16e';
     const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_ra6l6ec';
     const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'Mjrt59vo5ZEcSa_k_';
     
+    // IMPORTANT: Use 'email' NOT 'to_email' (matches your template)
     const templateParams = {
-    email: userEmail,  // This MUST match {{email}} in your template's "To Email" field
-    user_name: userName,
-    user_email: userEmail, // Optional: also send as user_email for use in template body
-    app_url: import.meta.env.VITE_FRONTEND_URL || window.location.origin,
-    year: new Date().getFullYear().toString()
-};
+      email: userEmail,          // This matches {{email}} in your template
+      user_name: userName,       // This matches {{user_name}} in your template
+      user_email: userEmail,     // Optional: also send email for template body
+      app_url: import.meta.env.VITE_FRONTEND_URL || window.location.origin,
+      year: new Date().getFullYear().toString()
+    };
 
     console.log('📧 EmailJS Parameters:', {
       serviceId,
@@ -26,16 +27,15 @@ export const sendWelcomeEmail = async (userEmail, userName) => {
       templateParams
     });
 
-    // Remove emailjs.init() - not needed
-    // Send email via EmailJS
+    // NEW EmailJS syntax: 4 parameters required
     const response = await emailjs.send(
       serviceId,
       templateId,
       templateParams,
-      publicKey // Add public key as the 4th parameter
+      publicKey  // 4th parameter is public key
     );
 
-    console.log('✅ Frontend: Email sent successfully!', response);
+    console.log('✅ Email sent successfully!', response);
     return { 
       success: true, 
       message: 'Welcome email sent successfully',
@@ -43,8 +43,8 @@ export const sendWelcomeEmail = async (userEmail, userName) => {
     };
     
   } catch (error) {
-    console.error('❌ Frontend: Email sending failed:', error);
-    console.error('Full error details:', {
+    console.error('❌ Email sending failed:', error);
+    console.error('Error details:', {
       status: error.status,
       text: error.text,
       message: error.message

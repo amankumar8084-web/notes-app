@@ -53,34 +53,58 @@ const Register = () => {
     return true;
   };
 
-  // UPDATED EMAIL FUNCTION - Now actually calls EmailJS
+  // ACTUAL EMAILJS FUNCTION - REPLACED THE OLD ONE
   const sendWelcomeEmailSimple = async (userEmail, userName) => {
-    console.log('📧 Sending welcome email to:', userEmail);
+    console.log('📧 Sending welcome email via EmailJS to:', userEmail);
     
     try {
-      // Call the actual EmailJS service
       const emailResult = await sendWelcomeEmail(userEmail, userName);
       
       if (emailResult.success) {
-        console.log('✅ Email sent successfully');
-        return { success: true, message: 'Welcome email sent' };
+        console.log('✅ Email sent successfully!');
+        return { 
+          success: true, 
+          message: 'Welcome email sent',
+          emailSent: true 
+        };
       } else {
-        console.warn('⚠️ Email sending failed:', emailResult.error);
-        // Still return success for registration flow
+        console.error('❌ EmailJS failed:', emailResult.error);
+        // Still continue registration even if email fails
         return { 
           success: true, 
           message: 'Registration successful, but email failed',
-          emailFailed: true 
+          emailFailed: true,
+          error: emailResult.error
         };
       }
     } catch (err) {
-      console.error('❌ Error in email sending:', err);
-      // Still return success for registration flow
+      console.error('❌ Email sending error:', err);
+      // Still continue registration
       return { 
         success: true, 
         message: 'Registration successful',
         emailFailed: true 
       };
+    }
+  };
+
+  // TEST FUNCTION FOR EMAILJS
+  const testEmailJSNow = async () => {
+    console.log('🔧 Testing EmailJS directly...');
+    const testEmail = formData.email || 'test@example.com'; // Use form email if available
+    const testName = formData.username || 'Test User';
+    
+    try {
+      const result = await sendWelcomeEmail(testEmail, testName);
+      console.log('Test Result:', result);
+      if (result.success) {
+        alert('✅ EmailJS Working! Check console for details.');
+      } else {
+        alert('❌ EmailJS Failed: ' + result.error);
+      }
+    } catch (err) {
+      console.error('Test Error:', err);
+      alert('❌ Test Error: ' + err.message);
     }
   };
 
@@ -109,7 +133,7 @@ const Register = () => {
         return;
       }
 
-      // 2. Send welcome email (now using actual EmailJS)
+      // 2. Send welcome email (using actual EmailJS)
       const emailResult = await sendWelcomeEmailSimple(formData.email, formData.username);
 
       // 3. Auto login
@@ -117,9 +141,9 @@ const Register = () => {
       
       if (loginResult.success) {
         if (emailResult.emailFailed) {
-          setSuccess('✅ Account created! (Email notification sent to console)');
+          setSuccess('✅ Account created! (Welcome email failed - check console) Redirecting...');
         } else {
-          setSuccess('✅ Account created successfully! Welcome email sent.');
+          setSuccess('✅ Account created successfully! Welcome email sent. Redirecting...');
         }
         
         setTimeout(() => {
@@ -169,6 +193,20 @@ const Register = () => {
         </div>
         
         <div className="bg-white rounded-lg shadow border border-gray-200 py-6 px-4 sm:px-8">
+          {/* Test EmailJS Button */}
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+            <button
+              type="button"
+              onClick={testEmailJSNow}
+              className="w-full py-2 px-4 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded transition"
+            >
+              🧪 Test EmailJS Service
+            </button>
+            <p className="text-xs text-yellow-700 mt-2 text-center">
+              Test EmailJS before registering (uses your entered email)
+            </p>
+          </div>
+          
           <form className="space-y-4" onSubmit={handleSubmit}>
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 sm:px-4 sm:py-3 rounded text-sm sm:text-base">
@@ -228,7 +266,7 @@ const Register = () => {
                   value={formData.email}
                   onChange={handleChange}
                   className="pl-10 w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-700 focus:border-blue-700 outline-none transition text-sm sm:text-base"
-                  placeholder="Enter your email"
+                  placeholder="you@example.com"
                 />
               </div>
             </div>
@@ -309,7 +347,7 @@ const Register = () => {
             By creating an account, you agree to our Terms of Service and Privacy Policy
           </p>
           <p className="mt-2 text-xs text-gray-400">
-            A welcome notification will be sent after registration
+            A welcome email will be sent to your email address after registration
           </p>
         </div>
       </div>
