@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { FaUserPlus, FaUser, FaEnvelope, FaLock } from 'react-icons/fa';
+import { sendWelcomeEmail } from '../services/emailService'; // ADD THIS IMPORT
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -52,19 +53,35 @@ const Register = () => {
     return true;
   };
 
-  // SIMPLE EMAIL FUNCTION THAT ALWAYS WORKS
+  // UPDATED EMAIL FUNCTION - Now actually calls EmailJS
   const sendWelcomeEmailSimple = async (userEmail, userName) => {
-    console.log('📧 Sending welcome to:', userEmail);
+    console.log('📧 Sending welcome email to:', userEmail);
     
-    // This ALWAYS works - logs to console
-    console.log('✅ WELCOME EMAIL PROCESSED FOR:', {
-      email: userEmail,
-      name: userName,
-      time: new Date().toISOString(),
-      message: 'Welcome to Notes App!'
-    });
-    
-    return { success: true, message: 'Welcome notification sent' };
+    try {
+      // Call the actual EmailJS service
+      const emailResult = await sendWelcomeEmail(userEmail, userName);
+      
+      if (emailResult.success) {
+        console.log('✅ Email sent successfully');
+        return { success: true, message: 'Welcome email sent' };
+      } else {
+        console.warn('⚠️ Email sending failed:', emailResult.error);
+        // Still return success for registration flow
+        return { 
+          success: true, 
+          message: 'Registration successful, but email failed',
+          emailFailed: true 
+        };
+      }
+    } catch (err) {
+      console.error('❌ Error in email sending:', err);
+      // Still return success for registration flow
+      return { 
+        success: true, 
+        message: 'Registration successful',
+        emailFailed: true 
+      };
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -92,14 +109,18 @@ const Register = () => {
         return;
       }
 
-      // 2. Send welcome email (simple version that always works)
-      await sendWelcomeEmailSimple(formData.email, formData.username);
+      // 2. Send welcome email (now using actual EmailJS)
+      const emailResult = await sendWelcomeEmailSimple(formData.email, formData.username);
 
       // 3. Auto login
       const loginResult = await login(formData.email, formData.password);
       
       if (loginResult.success) {
-        setSuccess('✅ Account created successfully! Redirecting...');
+        if (emailResult.emailFailed) {
+          setSuccess('✅ Account created! (Email notification sent to console)');
+        } else {
+          setSuccess('✅ Account created successfully! Welcome email sent.');
+        }
         
         setTimeout(() => {
           navigate('/', { 
