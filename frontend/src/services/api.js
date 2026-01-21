@@ -26,9 +26,9 @@ api.interceptors.request.use(
 
 // Auth API functions
 export const authAPI = {
-  register: (userData) => api.post('/signup', userData),
-  login: (credentials) => api.post('/login', credentials),
-  getProfile: () => api.get('/profile'),
+  login: (data) => axios.post(`${API_URL}/login`, data), // ✅ CORRECT
+  register: (data) => axios.post(`${API_URL}/signup`, data), // ✅ CORRECT
+  getProfile: () => axios.get(`${API_URL}/profile`) // ✅ CORRECT
 };
 
 // Notes API functions
