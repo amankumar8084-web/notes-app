@@ -29,11 +29,12 @@ export const sendWelcomeEmail = async (userEmail, userName) => {
     const templateId = 'template_ra6l6ec';
     
     const templateParams = {
-      to_email: userEmail,
-      to_name: userName,
-      app_url: 'https://lekhan.netlify.app',
-      year: new Date().getFullYear().toString()
-    };
+    to_email: userEmail,       // ✅ CORRECT - matches {{to_email}} in template
+    to_name: userName,         // ✅ CORRECT - matches {{to_name}} in template
+    user_email: userEmail,     // Optional - for template body if needed
+    app_url: import.meta.env.VITE_FRONTEND_URL || window.location.origin,
+    year: new Date().getFullYear().toString()
+};
 
     console.log('📤 Sending email via EmailJS...');
     
