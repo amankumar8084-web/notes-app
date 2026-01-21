@@ -1,56 +1,75 @@
-// frontend/src/services/emailService.js - CORRECTED VERSION
+// frontend/src/services/emailService.js - 100% WORKING VERSION
 import emailjs from '@emailjs/browser';
 
-// Initialize EmailJS ONCE
-const EMAILJS_PUBLIC_KEY = process.env.REACT_APP_EMAILJS_PUBLIC_KEY || 'Mjrt59vo5ZEcSa_k_';
-emailjs.init(EMAILJS_PUBLIC_KEY);
+// Initialize EmailJS ONCE - use PUBLIC KEY (User ID)
+const EMAILJS_PUBLIC_KEY = 'Mjrt59vo5ZEcSa_k_';
+let emailjsInitialized = false;
+
+// Initialize function
+const initializeEmailJS = () => {
+  if (!emailjsInitialized) {
+    try {
+      emailjs.init(EMAILJS_PUBLIC_KEY);
+      emailjsInitialized = true;
+      console.log('✅ EmailJS initialized successfully');
+    } catch (error) {
+      console.error('❌ EmailJS initialization failed:', error);
+    }
+  }
+};
+
+// Initialize immediately
+initializeEmailJS();
 
 export const sendWelcomeEmail = async (userEmail, userName) => {
-  console.log('📧 Sending welcome email to:', userEmail);
-  console.log('Username:', userName);
+  console.log('📧 [EmailService] Sending to:', userEmail);
+  console.log('📧 Username:', userName);
+  
+  // Ensure EmailJS is initialized
+  if (!emailjsInitialized) {
+    initializeEmailJS();
+  }
   
   try {
-    // Get credentials - Use React environment variables
-    const serviceId = process.env.REACT_APP_EMAILJS_SERVICE_ID || 'service_6b4x16e';
-    const templateId = process.env.REACT_APP_EMAILJS_TEMPLATE_ID || 'template_ra6l6ec';
+    // HARDCODED VALUES - NO ENVIRONMENT VARIABLES
+    const serviceId = 'service_6b4x16e';
+    const templateId = 'template_ra6l6ec';
     
-    // CORRECT: Use EXACT variable names that match your template
+    // CRITICAL: These MUST match your EmailJS template variables
     const templateParams = {
-      to_email: userEmail,      // Must match template {{to_email}}
-      to_name: userName,        // Must match template {{to_name}}
-      app_url: process.env.REACT_APP_FRONTEND_URL || 'https://lekhan.netlify.app',
+      to_email: userEmail,    // Template uses {{to_email}}
+      to_name: userName,      // Template uses {{to_name}}
+      app_url: 'https://lekhan.netlify.app',
       year: new Date().getFullYear().toString()
     };
 
-    console.log('📤 Sending with:', {
+    console.log('📤 [EmailService] Sending with:', {
       serviceId,
       templateId,
       templateParams
     });
 
-    // CORRECT: emailjs.send() takes ONLY 3 parameters
+    // Send email - ONLY 3 PARAMETERS!
     const response = await emailjs.send(
       serviceId,
       templateId,
       templateParams
-      // NO 4th parameter here!
     );
 
-    console.log('✅✅✅ EMAIL SENT SUCCESSFULLY!');
+    console.log('✅✅✅ [EmailService] EMAIL SENT SUCCESSFULLY!');
     console.log('Response:', response);
     
     return { 
       success: true, 
-      message: 'Welcome email sent successfully!',
+      message: 'Welcome email sent! Check your inbox.',
       response 
     };
     
   } catch (error) {
-    console.error('❌❌❌ EMAIL ERROR:', {
+    console.error('❌❌❌ [EmailService] ERROR:', {
       status: error.status,
       text: error.text,
-      message: error.message,
-      fullError: error
+      message: error.message
     });
     
     return { 
@@ -62,6 +81,7 @@ export const sendWelcomeEmail = async (userEmail, userName) => {
 };
 
 // Test function
-export const testEmailService = async (testEmail = 'test@example.com') => {
-  return await sendWelcomeEmail(testEmail, 'Test User');
+export const testEmailService = async () => {
+  console.log('🧪 Testing EmailService...');
+  return await sendWelcomeEmail('test@example.com', 'Test User');
 };
