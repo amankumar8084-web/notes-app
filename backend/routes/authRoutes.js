@@ -210,9 +210,9 @@ router.get("/health", (req, res) => {
     message: "Auth service is running",
     timestamp: new Date().toISOString(),
     endpoints: [
-      "POST /api/auth/signup",
-      "POST /api/auth/login", 
-      "GET /api/auth/profile"
+      "POST /api/signup",
+      "POST /api/login", 
+      "GET /api/profile"
     ]
   });
 });

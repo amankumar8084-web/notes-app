@@ -5,3 +5,8 @@
 [build.environment]
   VITE_API_URL = "https://notes-app-backend-mga4.onrender.com/api"
   VITE_FRONTEND_URL = "https://lekhan.netlify.app"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
