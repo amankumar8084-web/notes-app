@@ -63,43 +63,84 @@ const Register = () => {
 
   // IMPROVED EMAILJS FUNCTION
   const sendWelcomeEmailSimple = async (userEmail, userName) => {
-    addDebugLog(`📧 Attempting to send welcome email to: ${userEmail}`);
+    addDebugLog(`📞 Calling EmailJS for: ${userEmail}`);
     
     try {
-      addDebugLog(`📞 Calling sendWelcomeEmail service...`);
-      const emailResult = await sendWelcomeEmail(userEmail, userName);
+      // IMPORTANT: Call EmailJS directly without any wrapper
+      const emailjs = await import('@emailjs/browser');
       
-      if (emailResult.success) {
-        addDebugLog(`✅ Email sent successfully! Response: ${emailResult.response?.status || 'N/A'}`, 'success');
-        return { 
-          success: true, 
-          message: 'Welcome email sent',
-          emailSent: true,
-          response: emailResult.response
-        };
-      } else {
-        addDebugLog(`❌ EmailJS failed: ${emailResult.error || 'Unknown error'}`, 'error');
-        return { 
-          success: true, // Still allow registration
-          message: 'Registration successful, but email failed',
-          emailFailed: true,
-          error: emailResult.error
-        };
-      }
-    } catch (err) {
-      addDebugLog(`💥 Email sending crashed: ${err.message}`, 'error');
+      // Initialize with your public key
+      emailjs.init('Mjrt59vo5ZEcSa_k_');
+      
+      const response = await emailjs.send(
+        'service_6b4x16e',
+        'template_ra6l6ec',
+        {
+          to_email: userEmail,
+          to_name: userName,
+          user_email: userEmail,
+          app_url: 'https://lekhan.netlify.app',
+          year: new Date().getFullYear().toString()
+        }
+      );
+      
+      addDebugLog(`✅ Email sent successfully! Status: ${response.status}`, 'success');
       return { 
-        success: true, // Still allow registration
-        message: 'Registration successful',
-        emailFailed: true,
-        error: err.message
+        success: true, 
+        emailSent: true,
+        response: response
       };
+      
+    } catch (error) {
+      addDebugLog(`❌ Email error: ${error.text || error.message}`, 'error');
+      addDebugLog(`Status: ${error.status}`, 'error');
+      
+      return { 
+        success: false,
+        emailFailed: true,
+        error: error.text || error.message
+      };
+    }
+  };
+
+  // DIRECT EMAILJS TEST FUNCTION
+  const directEmailTest = async () => {
+    const testEmail = formData.email || 'amankumar8084227421@gmail.com'; // CHANGE THIS TO YOUR EMAIL
+    const testName = formData.username || 'Test User';
+    
+    addDebugLog('⚡ DIRECT EmailJS Test');
+    addDebugLog(`Using email: ${testEmail}`);
+    
+    try {
+      // Load EmailJS directly
+      const emailjs = await import('@emailjs/browser');
+      emailjs.init('Mjrt59vo5ZEcSa_k_');
+      
+      const response = await emailjs.send(
+        'service_6b4x16e',
+        'template_ra6l6ec',
+        {
+          to_email: testEmail,
+          to_name: testName,
+          user_email: testEmail,
+          app_url: 'https://lekhan.netlify.app',
+          year: '2024'
+        }
+      );
+      
+      addDebugLog(`✅ DIRECT TEST SUCCESS! Status: ${response.status}`, 'success');
+      alert(`✅ Email sent to ${testEmail}! Check your inbox.`);
+      
+    } catch (error) {
+      addDebugLog(`❌ DIRECT TEST ERROR: ${error.text || error.message}`, 'error');
+      addDebugLog(`Error status: ${error.status}`, 'error');
+      alert(`❌ Error: ${error.text || error.message}`);
     }
   };
 
   // IMPROVED TEST FUNCTION
   const testEmailJSNow = async () => {
-    addDebugLog('🔧 Testing EmailJS directly...');
+    addDebugLog('🔧 Testing EmailJS via service...');
     const testEmail = formData.email || 'test@example.com'; 
     const testName = formData.username || 'Test User';
     
@@ -308,6 +349,14 @@ const Register = () => {
               <div className="space-y-2">
                 <button
                   type="button"
+                  onClick={directEmailTest}
+                  className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded transition"
+                >
+                  ⚡ Direct EmailJS Test
+                </button>
+                
+                <button
+                  type="button"
                   onClick={testEmailJSNow}
                   className="w-full py-2 px-4 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded transition"
                 >
@@ -324,7 +373,7 @@ const Register = () => {
               </div>
               
               <p className="text-xs text-gray-500 mt-2 text-center">
-                Test EmailJS and debug registration before submitting
+                Test EmailJS directly or through service layer
               </p>
             </div>
             
@@ -390,6 +439,9 @@ const Register = () => {
                     placeholder="you@example.com"
                   />
                 </div>
+                <p className="mt-1 text-xs text-gray-400 italic">
+                  Use your real email to receive test emails
+                </p>
               </div>
 
               {/* Password Field */}
@@ -496,12 +548,13 @@ const Register = () => {
             </div>
             
             <div className="mt-4 text-xs text-gray-400">
-              <p>🔍 Debug info will appear here when you:</p>
-              <ul className="list-disc list-inside mt-1 space-y-1">
-                <li>Test EmailJS</li>
-                <li>Debug registration</li>
-                <li>Submit registration form</li>
-              </ul>
+              <p className="font-medium mb-1">Test Instructions:</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Enter your real email above</li>
+                <li>Click <span className="text-green-400">"⚡ Direct EmailJS Test"</span></li>
+                <li>Check if email arrives in your inbox</li>
+                <li>Check debug console for errors/success</li>
+              </ol>
             </div>
           </div>
         </div>

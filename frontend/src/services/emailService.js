@@ -1,66 +1,55 @@
-// frontend/src/services/emailService.js - FINAL WORKING VERSION
 import emailjs from '@emailjs/browser';
 
-// Initialize ONCE
-const EMAILJS_PUBLIC_KEY = 'Mjrt59vo5ZEcSa_k_';
-let emailjsInitialized = false;
-
-const initializeEmailJS = () => {
-  if (!emailjsInitialized) {
-    emailjs.init(EMAILJS_PUBLIC_KEY);
-    emailjsInitialized = true;
-    console.log('✅ EmailJS initialized');
-  }
+// Hardcode your credentials - no environment variables
+const EMAILJS_CONFIG = {
+  SERVICE_ID: 'service_6b4x16e',
+  TEMPLATE_ID: 'template_ra6l6ec',
+  PUBLIC_KEY: 'Mjrt59vo5ZEcSa_k_'
 };
-
-// Initialize immediately
-initializeEmailJS();
 
 export const sendWelcomeEmail = async (userEmail, userName) => {
-  console.log('📧 Sending welcome email to:', userEmail);
-  
-  // Ensure initialized
-  if (!emailjsInitialized) {
-    initializeEmailJS();
-  }
+  console.log('🚀 [EMAIL] Starting sendWelcomeEmail');
+  console.log('To:', userEmail);
+  console.log('Name:', userName);
   
   try {
-    const serviceId = 'service_6b4x16e';
-    const templateId = 'template_ra6l6ec';
+    // Initialize EmailJS
+    emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
     
+    // Template parameters - MUST match your EmailJS template
     const templateParams = {
-    to_email: userEmail,       // ✅ CORRECT - matches {{to_email}} in template
-    to_name: userName,         // ✅ CORRECT - matches {{to_name}} in template
-    user_email: userEmail,     // Optional - for template body if needed
-    app_url: import.meta.env.VITE_FRONTEND_URL || window.location.origin,
-    year: new Date().getFullYear().toString()
-};
+      to_email: userEmail,      // This is CRITICAL - must match {{to_email}} in template
+      to_name: userName,        // This is CRITICAL - must match {{to_name}} in template
+      user_email: userEmail,    // Optional
+      app_url: 'https://lekhan.netlify.app',
+      year: new Date().getFullYear().toString()
+    };
 
-    console.log('📤 Sending email via EmailJS...');
-    
+    console.log('📤 [EMAIL] Sending with params:', templateParams);
+
+    // Send email
     const response = await emailjs.send(
-      serviceId,
-      templateId,
+      EMAILJS_CONFIG.SERVICE_ID,
+      EMAILJS_CONFIG.TEMPLATE_ID,
       templateParams
     );
 
-    console.log('✅✅✅ EMAIL SENT SUCCESSFULLY!');
+    console.log('✅ [EMAIL] Success!', response);
     return { 
       success: true, 
-      message: 'Welcome email sent! Check your inbox.',
-      response 
+      message: 'Welcome email sent successfully',
+      response: response
     };
     
   } catch (error) {
-    console.error('❌ Email error:', error);
+    console.error('❌ [EMAIL] Error:', error);
+    console.error('Error status:', error.status);
+    console.error('Error text:', error.text);
+    
     return { 
       success: false, 
-      error: error.text || error.message
+      error: error.text || error.message,
+      status: error.status
     };
   }
-};
-
-// Optional: Test function
-export const testEmailService = () => {
-  return sendWelcomeEmail('test@example.com', 'Test User');
 };
