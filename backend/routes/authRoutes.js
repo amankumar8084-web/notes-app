@@ -32,7 +32,7 @@ router.post("/signup", async (req, res) => {
   }
 
   try {
-    // 1. Check existing user
+    //Check existing user
     console.log('🔍 Checking if user exists...');
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -44,14 +44,14 @@ router.post("/signup", async (req, res) => {
     }
     console.log('✅ User does not exist');
 
-    // 2. Hash password
+    //Hash password
     console.log('🔐 Hashing password...');
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUsername = username || email.split("@")[0];
     console.log('✅ Password hashed');
     console.log('✅ Username:', newUsername);
 
-    // 3. Save user
+    //Save user
     console.log('💾 Saving user to database...');
     const newUser = new User({
       email,
@@ -62,7 +62,7 @@ router.post("/signup", async (req, res) => {
     await newUser.save();
     console.log('✅ User saved with ID:', newUser._id);
 
-    // 4. Create JWT token for immediate login
+    //Create JWT token for immediate login
     console.log('🔑 Creating JWT token...');
     const token = jwt.sign(
       { userId: newUser._id },
@@ -71,7 +71,7 @@ router.post("/signup", async (req, res) => {
     );
     console.log('✅ Token created');
 
-    // 5. Send response
+    //Send response
     console.log('📤 Sending response to client...');
     res.status(201).json({
       success: true,

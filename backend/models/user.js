@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
     username: {
         type: String,
         default: function() {
-            // Generate username from email (part before @)
+            // Generate username from email 
             return this.email.split('@')[0];
         }
     }

@@ -1,58 +1,61 @@
+// frontend/src/services/emailService.js - CORRECTED VERSION
 import emailjs from '@emailjs/browser';
 
+// Initialize EmailJS ONCE
+const EMAILJS_PUBLIC_KEY = process.env.REACT_APP_EMAILJS_PUBLIC_KEY || 'Mjrt59vo5ZEcSa_k_';
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
 export const sendWelcomeEmail = async (userEmail, userName) => {
-  console.log('📧 Frontend: Attempting to send welcome email...');
-  console.log('To:', userEmail);
+  console.log('📧 Sending welcome email to:', userEmail);
   console.log('Username:', userName);
   
   try {
-    // USE VITE ENVIRONMENT VARIABLES
-    const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_6b4x16e';
-    const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_ra6l6ec';
-    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'Mjrt59vo5ZEcSa_k_';
+    // Get credentials - Use React environment variables
+    const serviceId = process.env.REACT_APP_EMAILJS_SERVICE_ID || 'service_6b4x16e';
+    const templateId = process.env.REACT_APP_EMAILJS_TEMPLATE_ID || 'template_ra6l6ec';
     
-    // IMPORTANT: Use 'email' NOT 'to_email' (matches your template)
+    // CORRECT: Use EXACT variable names that match your template
     const templateParams = {
-      email: userEmail,          // This matches {{email}} in your template
-      user_name: userName,       // This matches {{user_name}} in your template
-      user_email: userEmail,     // Optional: also send email for template body
-      app_url: import.meta.env.VITE_FRONTEND_URL || window.location.origin,
+      to_email: userEmail,      // Must match template {{to_email}}
+      to_name: userName,        // Must match template {{to_name}}
+      app_url: process.env.REACT_APP_FRONTEND_URL || 'https://lekhan.netlify.app',
       year: new Date().getFullYear().toString()
     };
 
-    console.log('📧 EmailJS Parameters:', {
+    console.log('📤 Sending with:', {
       serviceId,
       templateId,
-      publicKey,
       templateParams
     });
 
-    // NEW EmailJS syntax: 4 parameters required
+    // CORRECT: emailjs.send() takes ONLY 3 parameters
     const response = await emailjs.send(
       serviceId,
       templateId,
-      templateParams,
-      publicKey  // 4th parameter is public key
+      templateParams
+      // NO 4th parameter here!
     );
 
-    console.log('✅ Email sent successfully!', response);
+    console.log('✅✅✅ EMAIL SENT SUCCESSFULLY!');
+    console.log('Response:', response);
+    
     return { 
       success: true, 
-      message: 'Welcome email sent successfully',
+      message: 'Welcome email sent successfully!',
       response 
     };
     
   } catch (error) {
-    console.error('❌ Email sending failed:', error);
-    console.error('Error details:', {
+    console.error('❌❌❌ EMAIL ERROR:', {
       status: error.status,
       text: error.text,
-      message: error.message
+      message: error.message,
+      fullError: error
     });
     
     return { 
       success: false, 
-      error: error.message,
+      error: error.text || error.message,
       status: error.status
     };
   }

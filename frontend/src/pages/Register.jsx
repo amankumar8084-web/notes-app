@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { FaUserPlus, FaUser, FaEnvelope, FaLock } from 'react-icons/fa';
-import { sendWelcomeEmail } from '../services/emailService'; // ADD THIS IMPORT
+import { sendWelcomeEmail } from '../services/emailService'; 
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -91,7 +91,7 @@ const Register = () => {
   // TEST FUNCTION FOR EMAILJS
   const testEmailJSNow = async () => {
     console.log('🔧 Testing EmailJS directly...');
-    const testEmail = formData.email || 'test@example.com'; // Use form email if available
+    const testEmail = formData.email || 'test@example.com'; 
     const testName = formData.username || 'Test User';
     
     try {
@@ -120,7 +120,7 @@ const Register = () => {
     setSuccess('');
 
     try {
-      // 1. Register user
+      //Register user
       const result = await register(
         formData.email, 
         formData.password, 
@@ -133,10 +133,10 @@ const Register = () => {
         return;
       }
 
-      // 2. Send welcome email (using actual EmailJS)
+      //Send welcome email
       const emailResult = await sendWelcomeEmailSimple(formData.email, formData.username);
 
-      // 3. Auto login
+      //Auto login
       const loginResult = await login(formData.email, formData.password);
       
       if (loginResult.success) {
