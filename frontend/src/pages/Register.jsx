@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { FaUserPlus, FaUser, FaEnvelope, FaLock } from 'react-icons/fa';
-import { sendWelcomeEmail } from '../services/emailService'; 
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -61,16 +60,18 @@ const Register = () => {
     return true;
   };
 
-  // IMPROVED EMAILJS FUNCTION
+  // EMAILJS FUNCTION THAT ACTUALLY WORKS
   const sendWelcomeEmailSimple = async (userEmail, userName) => {
-    addDebugLog(`📞 Calling EmailJS for: ${userEmail}`);
+    addDebugLog(`📞 [REGISTRATION] Starting EmailJS for: ${userEmail}`);
     
     try {
-      // IMPORTANT: Call EmailJS directly without any wrapper
+      // Dynamically import EmailJS
       const emailjs = await import('@emailjs/browser');
       
       // Initialize with your public key
       emailjs.init('Mjrt59vo5ZEcSa_k_');
+      
+      addDebugLog(`📤 [REGISTRATION] Sending email...`);
       
       const response = await emailjs.send(
         'service_6b4x16e',
@@ -84,7 +85,7 @@ const Register = () => {
         }
       );
       
-      addDebugLog(`✅ Email sent successfully! Status: ${response.status}`, 'success');
+      addDebugLog(`✅ [REGISTRATION] Email sent successfully! Status: ${response.status}`, 'success');
       return { 
         success: true, 
         emailSent: true,
@@ -92,12 +93,12 @@ const Register = () => {
       };
       
     } catch (error) {
-      addDebugLog(`❌ Email error: ${error.text || error.message}`, 'error');
+      addDebugLog(`❌ [REGISTRATION] Email error: ${error.text || error.message}`, 'error');
       addDebugLog(`Status: ${error.status}`, 'error');
       
       return { 
         success: false,
-        emailFailed: true,
+        emailSent: false,
         error: error.text || error.message
       };
     }
@@ -105,7 +106,7 @@ const Register = () => {
 
   // DIRECT EMAILJS TEST FUNCTION
   const directEmailTest = async () => {
-    const testEmail = formData.email || 'amankumar8084227421@gmail.com'; // CHANGE THIS TO YOUR EMAIL
+    const testEmail = formData.email || 'amankumar8084227421@gmail.com'; // Your email
     const testName = formData.username || 'Test User';
     
     addDebugLog('⚡ DIRECT EmailJS Test');
@@ -135,35 +136,6 @@ const Register = () => {
       addDebugLog(`❌ DIRECT TEST ERROR: ${error.text || error.message}`, 'error');
       addDebugLog(`Error status: ${error.status}`, 'error');
       alert(`❌ Error: ${error.text || error.message}`);
-    }
-  };
-
-  // IMPROVED TEST FUNCTION
-  const testEmailJSNow = async () => {
-    addDebugLog('🔧 Testing EmailJS via service...');
-    const testEmail = formData.email || 'test@example.com'; 
-    const testName = formData.username || 'Test User';
-    
-    if (!testEmail.includes('@')) {
-      alert('⚠️ Please enter a valid email address first');
-      addDebugLog('❌ Test failed: Invalid email address', 'error');
-      return;
-    }
-    
-    try {
-      addDebugLog(`Testing with email: ${testEmail}, name: ${testName}`);
-      const result = await sendWelcomeEmail(testEmail, testName);
-      
-      if (result.success) {
-        addDebugLog(`✅ EmailJS Test Success!`, 'success');
-        alert(`✅ EmailJS Working!\nCheck ${testEmail} for welcome email.`);
-      } else {
-        addDebugLog(`❌ EmailJS Test Failed: ${result.error}`, 'error');
-        alert(`❌ EmailJS Failed:\n${result.error || 'Unknown error'}`);
-      }
-    } catch (err) {
-      addDebugLog(`💥 Test Error: ${err.message}`, 'error');
-      alert(`❌ Test Error: ${err.message}`);
     }
   };
 
@@ -263,24 +235,28 @@ const Register = () => {
 
       addDebugLog('✅ Registration successful, sending welcome email...', 'success');
       
-      // 2. Send welcome email (fire and forget - don't wait for completion)
-      sendWelcomeEmailSimple(formData.email, formData.username)
-        .then(emailResult => {
-          addDebugLog(`📧 Email result: ${emailResult.emailSent ? 'Sent' : 'Failed'}`, 
-                     emailResult.emailSent ? 'success' : 'error');
-        })
-        .catch(emailErr => {
-          addDebugLog(`💥 Email error (non-blocking): ${emailErr.message}`, 'error');
-        });
-
+      // 2. Send welcome email (WAIT FOR IT!)
+      addDebugLog('📧 Starting EmailJS send...');
+      console.log('🔍 DEBUG: About to call sendWelcomeEmailSimple');
+      console.log('Email:', formData.email);
+      console.log('Username:', formData.username);
+      
+      const emailResult = await sendWelcomeEmailSimple(formData.email, formData.username);
+      addDebugLog(`📧 Email result received: ${emailResult.emailSent ? 'Sent ✅' : 'Failed ❌'}`);
+      
       // 3. Try auto login
       addDebugLog('🔐 Attempting auto-login...');
       try {
         const loginResult = await login(formData.email, formData.password);
         
         if (loginResult.success) {
-          addDebugLog('✅ Auto-login successful!', 'success');
-          setSuccess('✅ Account created successfully! Welcome email sent. Redirecting...');
+          if (emailResult.emailSent) {
+            addDebugLog('✅ Auto-login successful! Email sent!', 'success');
+            setSuccess('✅ Account created successfully! Welcome email sent. Redirecting...');
+          } else {
+            addDebugLog('✅ Auto-login successful! Email failed.', 'warning');
+            setSuccess('✅ Account created! (Email failed) Redirecting...');
+          }
           
           setTimeout(() => {
             navigate('/', { 
@@ -357,14 +333,6 @@ const Register = () => {
                 
                 <button
                   type="button"
-                  onClick={testEmailJSNow}
-                  className="w-full py-2 px-4 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded transition"
-                >
-                  🧪 Test EmailJS Service
-                </button>
-                
-                <button
-                  type="button"
                   onClick={debugRegistrationFlow}
                   className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded transition"
                 >
@@ -373,7 +341,7 @@ const Register = () => {
               </div>
               
               <p className="text-xs text-gray-500 mt-2 text-center">
-                Test EmailJS directly or through service layer
+                Test EmailJS directly or debug full registration
               </p>
             </div>
             
@@ -440,7 +408,7 @@ const Register = () => {
                   />
                 </div>
                 <p className="mt-1 text-xs text-gray-400 italic">
-                  Use your real email to receive test emails
+                  Use your real email to receive welcome email
                 </p>
               </div>
 
@@ -548,13 +516,13 @@ const Register = () => {
             </div>
             
             <div className="mt-4 text-xs text-gray-400">
-              <p className="font-medium mb-1">Test Instructions:</p>
-              <ol className="list-decimal list-inside space-y-1">
-                <li>Enter your real email above</li>
-                <li>Click <span className="text-green-400">"⚡ Direct EmailJS Test"</span></li>
-                <li>Check if email arrives in your inbox</li>
-                <li>Check debug console for errors/success</li>
-              </ol>
+              <p className="font-medium mb-1">Debug Info:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Click <span className="text-green-400">"⚡ Direct EmailJS Test"</span> first</li>
+                <li>Then register to test full flow</li>
+                <li>Check logs below for EmailJS status</li>
+                <li>Look for <span className="text-green-400">"[REGISTRATION]"</span> logs</li>
+              </ul>
             </div>
           </div>
         </div>
