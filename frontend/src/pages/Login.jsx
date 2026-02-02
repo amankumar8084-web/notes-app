@@ -62,10 +62,10 @@ const Login = () => {
       const emailjsModule = await import('@emailjs/browser');
       const emailjs = emailjsModule.default || emailjsModule;
       
-      // Initialize with your public key
+      
       emailjs.init('Mjrt59vo5ZEcSa_k_');
       
-      // Send the welcome email
+      
       const response = await emailjs.send(
         'service_6b4x16e',
         'template_ra6l6ec',
@@ -78,11 +78,11 @@ const Login = () => {
         }
       );
       
-      console.log('✅ Welcome email sent successfully!', response);
+      console.log(' Welcome email sent successfully!', response);
       return { success: true };
       
     } catch (error) {
-      console.error('❌ Email sending error:', error);
+      console.error(' Email sending error:', error);
       return { 
         success: false, 
         error: error.text || error.message || 'Failed to send email'
@@ -105,7 +105,7 @@ const Login = () => {
       let result;
       
       if (isLogin) {
-        // LOGIN FLOW
+        
         result = await login(formData.email, formData.password);
 
         if (result.success) {
@@ -114,10 +114,10 @@ const Login = () => {
           setError(result.error);
         }
       } else {
-        // REGISTRATION FLOW WITH EMAIL
-        console.log('🚀 Starting registration process...');
         
-        // 1. Register user in backend
+        console.log(' Starting registration process...');
+        
+        
         result = await register(formData.email, formData.password, formData.username);
         
         console.log('Registration result:', result);
@@ -128,7 +128,7 @@ const Login = () => {
           return;
         }
 
-        console.log('✅ Registration successful');
+        console.log(' Registration successful');
         setSuccess('Account created successfully! Sending welcome email...');
         
         // 2. Send welcome email (non-blocking)
@@ -146,7 +146,7 @@ const Login = () => {
             console.error('Email error:', err);
           });
 
-        // 3. Try auto login after registration
+        
         try {
           const loginResult = await login(formData.email, formData.password);
           
@@ -203,7 +203,7 @@ const Login = () => {
             )}
           </div>
           <h2 className="text-3xl font-extrabold text-gray-900">
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+            {isLogin ? 'Welcome' : 'Create Account'}
           </h2>
           <p className="mt-2 text-gray-600">
             {isLogin ? 'Sign in to your account' : 'Join Lekhan and start writing'}
@@ -252,7 +252,7 @@ const Login = () => {
                 </div>
               )}
               
-              {/* Username Field (Only for Registration) */}
+              {/* Username  */}
               {!isLogin && (
                 <div>
                   <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
@@ -267,7 +267,7 @@ const Login = () => {
                     value={formData.username}
                     onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out"
-                    placeholder="Choose a username"
+                    placeholder="Enter your name"
                     minLength="3"
                     maxLength="30"
                   />
@@ -277,7 +277,7 @@ const Login = () => {
                 </div>
               )}
 
-              {/* Email Field */}
+              {/* Email  */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                   Email Address
@@ -291,11 +291,11 @@ const Login = () => {
                   value={formData.email}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out"
-                  placeholder="your.email@example.com"
+                  placeholder="Enter your email"
                 />
                 {!isLogin && (
                   <p className="mt-1 text-xs text-gray-500">
-                    We'll send a welcome email to this address
+                    We'll send a confirmation mail
                   </p>
                 )}
               </div>
@@ -324,7 +324,7 @@ const Login = () => {
                 )}
               </div>
 
-              {/* Confirm Password Field (Only for Registration) */}
+              {/* Confirm Password */}
               {!isLogin && (
                 <div>
                   <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
@@ -394,7 +394,7 @@ const Login = () => {
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 {isLogin ? 'Need help signing in? ' : 'Need help with registration? '}
-                <a href="mailto:support@lekhan.com" className="font-medium text-blue-600 hover:text-blue-500">
+                <a href="amankumar8084227421@gmail.com" className="font-medium text-blue-600 hover:text-blue-500">
                   Contact support
                 </a>
               </p>
