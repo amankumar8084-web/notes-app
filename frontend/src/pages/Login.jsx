@@ -53,12 +53,11 @@ const Login = () => {
     return true;
   };
 
-  // EmailJS function for sending welcome email
   const sendWelcomeEmail = async (userEmail, userName) => {
     console.log('📧 Sending welcome email to:', userEmail);
     
     try {
-      // Dynamically import EmailJS
+      
       const emailjsModule = await import('@emailjs/browser');
       const emailjs = emailjsModule.default || emailjsModule;
       
@@ -129,14 +128,14 @@ const Login = () => {
         }
 
         console.log(' Registration successful');
-        setSuccess('Account created successfully! Sending welcome email...');
+    
         
-        // 2. Send welcome email (non-blocking)
+        
         sendWelcomeEmail(formData.email, formData.username)
           .then(emailResult => {
             if (emailResult.success) {
               console.log('✅ Welcome email sent successfully!');
-              setSuccess('✅ Account created! Welcome email sent.');
+              
             } else {
               console.warn('⚠️ Welcome email failed:', emailResult.error);
               setSuccess('✅ Account created! (Welcome email could not be sent)');
@@ -161,7 +160,7 @@ const Login = () => {
               });
             }, 2000);
           } else {
-            setSuccess('✅ Account created! Please login manually.');
+            
             setTimeout(() => {
               navigate('/login', { 
                 state: { 
@@ -172,7 +171,7 @@ const Login = () => {
           }
         } catch (loginErr) {
           console.warn('Auto-login error:', loginErr);
-          setSuccess('✅ Account created! Redirecting to login...');
+          
           setTimeout(() => {
             navigate('/login', { 
               state: { 
@@ -271,9 +270,6 @@ const Login = () => {
                     minLength="3"
                     maxLength="30"
                   />
-                  <p className="mt-1 text-xs text-gray-500">
-                    This is how you'll appear to others
-                  </p>
                 </div>
               )}
 
@@ -293,11 +289,6 @@ const Login = () => {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out"
                   placeholder="Enter your email"
                 />
-                {!isLogin && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    We'll send a confirmation mail
-                  </p>
-                )}
               </div>
 
               {/* Password Field */}

@@ -1,6 +1,6 @@
 import emailjs from '@emailjs/browser';
 
-// Hardcode your credentials - no environment variables
+
 const EMAILJS_CONFIG = {
   SERVICE_ID: 'service_6b4x16e',
   TEMPLATE_ID: 'template_ra6l6ec',
@@ -13,14 +13,14 @@ export const sendWelcomeEmail = async (userEmail, userName) => {
   console.log('Name:', userName);
   
   try {
-    // Initialize EmailJS
+    
     emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
     
-    // Template parameters - MUST match your EmailJS template
+    
     const templateParams = {
-      to_email: userEmail,      // This is CRITICAL - must match {{to_email}} in template
-      to_name: userName,        // This is CRITICAL - must match {{to_name}} in template
-      user_email: userEmail,    // Optional
+      to_email: userEmail,      
+      to_name: userName,        
+      user_email: userEmail,    
       app_url: 'https://lekhan.netlify.app',
       year: new Date().getFullYear().toString()
     };
