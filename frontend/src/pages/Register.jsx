@@ -52,19 +52,45 @@ const Register = () => {
     return true;
   };
 
-  // Welcome email function using EmailJS
+  // FIXED: Correct EmailJS function with proper error handling
   const sendWelcomeEmail = async (userEmail, userName) => {
     try {
-      // Dynamically import EmailJS to reduce initial bundle size
-      const emailjs = await import('@emailjs/browser');
+      console.log('📧 Attempting to send welcome email to:', userEmail);
       
-      // Initialize with your public key
+      // Check if EmailJS is available
+      if (typeof window === 'undefined') {
+        console.error('EmailJS: Window object not available');
+        return { success: false, error: 'Browser environment required' };
+      }
+
+      // Dynamically import EmailJS
+      const emailjsModule = await import('@emailjs/browser');
+      const emailjs = emailjsModule.default || emailjsModule;
+      
+      console.log('EmailJS module loaded:', !!emailjs);
+      
+      // Check if EmailJS is initialized
+      if (!emailjs.init) {
+        console.error('EmailJS init function not found');
+        return { success: false, error: 'EmailJS initialization failed' };
+      }
+
+      // Initialize EmailJS with PUBLIC KEY
       emailjs.init('Mjrt59vo5ZEcSa_k_');
+      console.log('EmailJS initialized');
       
       // Send the welcome email
-      await emailjs.send(
-        'service_6b4x16e',
-        'template_ra6l6ec',
+      console.log('Sending email with parameters:', {
+        to_email: userEmail,
+        to_name: userName,
+        user_email: userEmail,
+        app_url: 'https://lekhan.netlify.app',
+        year: new Date().getFullYear().toString()
+      });
+
+      const response = await emailjs.send(
+        'service_6b4x16e', // Service ID
+        'template_ra6l6ec', // Template ID
         {
           to_email: userEmail,
           to_name: userName,
@@ -74,13 +100,63 @@ const Register = () => {
         }
       );
       
-      console.log('Welcome email sent successfully to:', userEmail);
-      return { success: true };
+      console.log('✅ Email sent successfully!', response);
+      return { 
+        success: true, 
+        response: response,
+        message: 'Welcome email sent successfully'
+      };
       
     } catch (error) {
-      console.error('Failed to send welcome email:', error);
-      // Don't fail the registration if email sending fails
-      return { success: false, error: error.message };
+      console.error('❌ EmailJS Error Details:', {
+        message: error.message,
+        text: error.text,
+        status: error.status,
+        fullError: error
+      });
+      
+      // Return specific error messages based on error type
+      let errorMessage = 'Failed to send welcome email';
+      if (error.text) {
+        errorMessage = error.text;
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (error.status === 0) {
+        errorMessage = 'Network error. Check internet connection.';
+      }
+      
+      return { 
+        success: false, 
+        error: errorMessage,
+        details: error
+      };
+    }
+  };
+
+  // TEST FUNCTION - Add this temporary button to test email
+  const testEmailButton = async () => {
+    if (!formData.email || !formData.email.includes('@')) {
+      alert('Please enter a valid email address first');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      console.log('🧪 Testing EmailJS with:', formData.email);
+      const result = await sendWelcomeEmail(formData.email, formData.username || 'Test User');
+      
+      if (result.success) {
+        alert(`✅ Test email sent successfully to ${formData.email}! Check your inbox (and spam folder).`);
+        console.log('Test result:', result);
+      } else {
+        alert(`❌ Failed to send test email: ${result.error}`);
+        console.error('Test failed:', result);
+      }
+    } catch (err) {
+      alert(`❌ Test error: ${err.message}`);
+      console.error('Test error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -96,40 +172,49 @@ const Register = () => {
     setSuccess('');
 
     try {
+      console.log('🚀 Starting registration process for:', formData.email);
+      
       // 1. Register user in backend
+      console.log('📤 Calling register API...');
       const registrationResult = await register(
         formData.email, 
         formData.password, 
         formData.username
       );
       
+      console.log('Register API response:', registrationResult);
+      
       if (!registrationResult.success) {
+        console.error('Registration failed:', registrationResult.error);
         setError(registrationResult.error || 'Registration failed');
         setLoading(false);
         return;
       }
 
-      console.log('Registration successful, sending welcome email...');
+      console.log('✅ Registration successful');
+      setSuccess('Account created successfully! Sending welcome email...');
       
-      // 2. Send welcome email (non-blocking - don't wait for completion)
-      sendWelcomeEmail(formData.email, formData.username)
-        .then(emailResult => {
-          if (emailResult.success) {
-            console.log('Welcome email sent successfully!');
-          } else {
-            console.warn('Welcome email failed to send:', emailResult.error);
-          }
-        })
-        .catch(emailErr => {
-          console.error('Email sending error:', emailErr);
-        });
+      // 2. Send welcome email
+      console.log('📧 Attempting to send welcome email...');
+      const emailResult = await sendWelcomeEmail(formData.email, formData.username);
+      
+      if (emailResult.success) {
+        console.log('✅ Welcome email sent successfully');
+        setSuccess(prev => prev + ' Welcome email sent!');
+      } else {
+        console.warn('⚠️ Welcome email failed:', emailResult.error);
+        // Don't fail registration if email fails, just show warning
+        setSuccess(prev => prev + ' (Welcome email could not be sent)');
+      }
 
-      // 3. Try auto login after registration
+      // 3. Try auto login
+      console.log('🔐 Attempting auto-login...');
       try {
         const loginResult = await login(formData.email, formData.password);
         
         if (loginResult.success) {
-          setSuccess('Account created successfully! Welcome email sent. Redirecting...');
+          console.log('✅ Auto-login successful');
+          setSuccess('✅ Registration complete! Redirecting to dashboard...');
           
           setTimeout(() => {
             navigate('/', { 
@@ -139,8 +224,8 @@ const Register = () => {
             });
           }, 2000);
         } else {
-          // If auto-login fails, redirect to login page
-          setSuccess('Account created successfully! Please login.');
+          console.warn('⚠️ Auto-login failed:', loginResult.error);
+          setSuccess('✅ Registration complete! Please login manually.');
           setTimeout(() => {
             navigate('/login', { 
               state: { 
@@ -150,8 +235,8 @@ const Register = () => {
           }, 2000);
         }
       } catch (loginErr) {
-        console.warn('Auto-login error:', loginErr);
-        setSuccess('Account created successfully! Redirecting to login...');
+        console.warn('⚠️ Auto-login error:', loginErr);
+        setSuccess('✅ Registration complete! Redirecting to login...');
         setTimeout(() => {
           navigate('/login', { 
             state: { 
@@ -162,7 +247,7 @@ const Register = () => {
       }
       
     } catch (err) {
-      console.error('Registration error:', err);
+      console.error('💥 Registration process error:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -190,6 +275,22 @@ const Register = () => {
         </div>
         
         <div className="bg-white py-8 px-6 shadow rounded-lg sm:px-10">
+          {/* TEMPORARY TEST BUTTON - Remove after testing */}
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+            <h3 className="text-sm font-medium text-yellow-800 mb-2">Email Testing</h3>
+            <p className="text-xs text-yellow-700 mb-3">
+              Enter your email and click below to test EmailJS. Check browser console for detailed logs.
+            </p>
+            <button
+              type="button"
+              onClick={testEmailButton}
+              disabled={loading || !formData.email}
+              className="w-full py-2 px-4 bg-yellow-600 hover:bg-yellow-700 text-white font-medium rounded-md transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              🧪 Test EmailJS Now
+            </button>
+          </div>
+          
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
               <div className="bg-red-50 border-l-4 border-red-400 p-4">
@@ -234,9 +335,6 @@ const Register = () => {
                   maxLength="30"
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-500">
-                Choose a username (3-30 characters)
-              </p>
             </div>
 
             {/* Email Field */}
@@ -286,9 +384,6 @@ const Register = () => {
                   minLength="6"
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-500">
-                Must be at least 6 characters
-              </p>
             </div>
 
             {/* Confirm Password Field */}
@@ -347,7 +442,7 @@ const Register = () => {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white text-gray-500">
-                  By creating an account, you agree to our Terms & Privacy
+                  Check spam folder for welcome email
                 </span>
               </div>
             </div>
